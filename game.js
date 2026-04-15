@@ -1,5 +1,8 @@
 // ── LYFE Game Engine ──
 
+// Add your Groq API key here
+const GROQ_API_KEY = "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";
+
 // ── Sim Data ──
 const SIM_DATA = [
   {
@@ -209,6 +212,7 @@ const state = {
   moveInterval: null,
   simMarkers: {},
   simGiftMemory: {}, // simId -> [{gift, timestamp}]
+  chatHistory: {}, // simId -> [{role, content}] rolling window of last 10
 };
 
 const WALK_GOAL = 300;
@@ -405,29 +409,155 @@ function addSystemMsg(text) {
   chatWin.scrollTop = chatWin.scrollHeight;
 }
 
-function sendChat() {
+// ── AI Chat ──
+function buildSystemPrompt(sim, rel, gifts) {
+  const tier = REL_TIERS.find(t => rel >= t.min && rel < t.max)?.label ?? "Stranger";
+
+  const profiles = {
+    1: {
+      age: 28,
+      personality: 'Warm, enthusiastic, finds the bright side of everything. Loves outdoor walks and coffee. Says "honestly" a lot. Asks follow-up questions.',
+      home: "Ground floor flat with a garden",
+      job: "Works at a community center in the afternoons",
+      relationships: "Old friends with Nadia, neighbours with Zara, knew Theo since childhood",
+    },
+    2: {
+      age: 25,
+      personality: 'Always mid-project, scattered, excited about ideas. Starts sentences with "okay but hear me out—". Freelance illustrator who works from home.',
+      home: "Cluttered flat full of art supplies",
+      job: "Freelance illustrator",
+      relationships: "Close friends with Marcus, dated Emil briefly — still complicated",
+    },
+    3: {
+      age: 61,
+      personality: 'Gentle, remembers everything, gets hurt by long absences. Widower. Offers food constantly. Asks "how are you really doing".',
+      home: "Warm house that always smells like something cooking",
+      job: "Retired, volunteers at the library twice a week",
+      relationships: "Knows everyone in the neighbourhood; knew Marcus as a kid",
+    },
+    4: {
+      age: 30,
+      personality: "Knows everyone, high energy, always planning something. Uses CAPS for emphasis. Loves bringing people together.",
+      home: "Stylish flat she hosts people in constantly",
+      job: "Events coordinator",
+      relationships: "Knows everyone — she is the neighbourhood connector",
+    },
+    5: {
+      age: 32,
+      personality: "Dry, guarded, short responses until trust builds. Secretly romantic, won't admit it. Gives grudging compliments.",
+      home: "Converted garage studio",
+      job: "Freelance graphic designer and painter",
+      relationships: "Dated Nadia — still friends, sort of. Respects Theo, won't say it out loud",
+    },
+  };
+
+  const p = profiles[sim.id];
+  const giftLines = (gifts && gifts.length > 0)
+    ? gifts.map(g => `  - ${g.gift}`).join('\n')
+    : "  None yet.";
+
+  return `You are ${sim.name}, a ${p.age}-year-old character in a location-based life simulation game called LYFE.
+
+PERSONALITY: ${p.personality}
+TRAIT: ${sim.trait}
+HOME: ${p.home}
+JOB: ${p.job}
+RELATIONSHIPS WITH OTHERS: ${p.relationships}
+
+RELATIONSHIP WITH THE PLAYER:
+- Current tier: ${tier}
+- Relationship score: ${rel}/100
+- Gifts received from the player:
+${giftLines}
+
+RULES:
+- Stay fully in character as ${sim.name} at all times. Never break character.
+- Keep all responses to 1–3 sentences. Be concise but authentic.
+- Match your tone to the relationship tier: reserved with a Stranger, warmer and more personal as a Friend or higher.
+- If the player asks whether you are an AI, deflect in-character (e.g. "That's a strange question...").
+- React naturally if the player mentions a gift you've received — you remember it.
+- Do NOT prefix your reply with your name or any label. Speak directly.`;
+}
+
+async function sendChat() {
   const input = document.getElementById('chat-input');
   const text = input.value.trim();
   if (!text || !state.activeSim) return;
   input.value = '';
 
+  const sim = state.activeSim;
+  const simId = sim.id;
+
   addPlayerMsg(text);
 
-  const sim = state.activeSim;
-  const lower = text.toLowerCase();
-  let pool = sim.responses.default;
-  if (lower.includes('weather') || lower.includes('rain') || lower.includes('sun')) {
-    pool = sim.responses.weather;
-  } else if (lower.includes('bye') || lower.includes('goodbye') || lower.includes('later') || lower.includes('leave')) {
-    pool = sim.responses.goodbye;
+  if (!state.chatHistory[simId]) state.chatHistory[simId] = [];
+  state.chatHistory[simId].push({ role: 'user', content: text });
+
+  // Fallback to random responses if no API key is set
+  if (!GROQ_API_KEY) {
+    const lower = text.toLowerCase();
+    let pool = sim.responses.default;
+    if (lower.includes('weather') || lower.includes('rain') || lower.includes('sun')) {
+      pool = sim.responses.weather;
+    } else if (lower.includes('bye') || lower.includes('goodbye') || lower.includes('later') || lower.includes('leave')) {
+      pool = sim.responses.goodbye;
+    }
+    const reply = pool[Math.floor(Math.random() * pool.length)];
+    setTimeout(() => {
+      addSimMsg(reply);
+      state.chatHistory[simId].push({ role: 'assistant', content: reply });
+      state.relationships[simId] = Math.min(100, (state.relationships[simId] || 0) + 3);
+      updateRelBar(state.relationships[simId]);
+    }, 700 + Math.random() * 500);
+    return;
   }
 
-  const reply = pool[Math.floor(Math.random() * pool.length)];
-  setTimeout(() => {
+  // Show typing indicator
+  const chatWin = document.getElementById('chat-window');
+  const typingEl = document.createElement('div');
+  typingEl.className = 'chat-msg sim typing';
+  typingEl.innerHTML = '<span></span><span></span><span></span>';
+  chatWin.appendChild(typingEl);
+  chatWin.scrollTop = chatWin.scrollHeight;
+
+  const rel = state.relationships[simId] || 0;
+  const gifts = state.simGiftMemory[simId] || [];
+  const systemPrompt = buildSystemPrompt(sim, rel, gifts);
+  const history = state.chatHistory[simId].slice(-10);
+
+  try {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...history,
+        ],
+        max_tokens: 150,
+        temperature: 0.85,
+      }),
+    });
+
+    if (!response.ok) throw new Error(`Groq API error: ${response.status}`);
+
+    const data = await response.json();
+    const reply = data.choices[0]?.message?.content?.trim() || '(no response...)';
+
+    typingEl.remove();
     addSimMsg(reply);
-    state.relationships[sim.id] = Math.min(100, (state.relationships[sim.id] || 0) + 3);
-    updateRelBar(state.relationships[sim.id]);
-  }, 700 + Math.random() * 500);
+    state.chatHistory[simId].push({ role: 'assistant', content: reply });
+    state.relationships[simId] = Math.min(100, (state.relationships[simId] || 0) + 3);
+    updateRelBar(state.relationships[simId]);
+  } catch (err) {
+    console.error(err);
+    typingEl.remove();
+    addSimMsg('(no response...)');
+  }
 }
 
 // ── Walk Together ──

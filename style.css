@@ -617,6 +617,28 @@ body {
   fill: rgba(200,169,126,0.07) !important;
 }
 
+/* ── Typing Indicator ── */
+.chat-msg.sim.typing {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 2px;
+}
+.chat-msg.sim.typing span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  animation: typingDot 1.2s ease-in-out infinite;
+}
+.chat-msg.sim.typing span:nth-child(1) { animation-delay: 0s; }
+.chat-msg.sim.typing span:nth-child(2) { animation-delay: 0.2s; }
+.chat-msg.sim.typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingDot {
+  0%, 60%, 100% { opacity: 0.2; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-4px); }
+}
+
 /* scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
