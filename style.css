@@ -617,6 +617,87 @@ body {
   fill: rgba(200,169,126,0.07) !important;
 }
 
+/* ── Shop Map Markers ── */
+.shop-map-marker { background: none; border: none; }
+.shop-icon-wrap {
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(111,207,151,0.15);
+  border: 2px solid rgba(111,207,151,0.35);
+  border-radius: 50%;
+  font-size: 17px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.shop-icon-wrap.in-range {
+  background: rgba(111,207,151,0.35);
+  border-color: var(--green);
+  box-shadow: 0 0 14px rgba(111,207,151,0.5);
+  animation: houseGlow 1.5s ease infinite alternate;
+}
+.shop-icon-name {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 10px;
+  font-family: 'Outfit', sans-serif;
+  color: var(--green);
+  background: rgba(13,13,26,0.8);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* ── Sim Walking State ── */
+.sim-house-icon.sim-walking {
+  animation: simWalk 0.45s ease-in-out infinite alternate;
+  border-color: rgba(200,169,126,0.7);
+  box-shadow: 0 0 12px rgba(200,169,126,0.4);
+}
+@keyframes simWalk {
+  from { transform: translateY(0) rotate(-3deg); }
+  to   { transform: translateY(-4px) rotate(3deg); }
+}
+.sim-house-icon.sim-at-dest::after {
+  content: attr(data-dest-hint);
+  position: absolute;
+  top: -8px; right: -8px;
+  font-size: 11px;
+  background: rgba(13,13,26,0.85);
+  border-radius: 4px;
+  padding: 1px 3px;
+}
+
+/* ── Gift Bag Empty State ── */
+.gift-empty-msg {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 14px;
+  padding: 28px 12px;
+  line-height: 1.7;
+}
+.gift-give-label {
+  color: var(--green) !important;
+}
+
+/* ── Shop Panel subtitle ── */
+.shop-balance-wrap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--gold);
+  font-size: 14px;
+  font-weight: 600;
+}
+.shop-subtitle {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+
 /* ── Typing Indicator ── */
 .chat-msg.sim.typing {
   display: flex;

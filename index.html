@@ -100,14 +100,25 @@
     <div class="token-popup-text"></div>
   </div>
 
-  <!-- Gift Shop -->
+  <!-- Gift Bag (give to sim) -->
   <div id="gift-panel" class="panel hidden">
     <div class="panel-header">
-      <div id="gift-title">Gift Shop</div>
+      <div id="gift-title">🎁 Gift Bag</div>
       <div id="gift-balance"><span class="token-icon">◈</span> <span id="gift-token-count">0</span></div>
       <button id="close-gift">✕</button>
     </div>
     <div id="gift-grid"></div>
+  </div>
+
+  <!-- Shop Panel (buy at real location) -->
+  <div id="shop-panel" class="panel hidden">
+    <div class="panel-header">
+      <div id="shop-name">Shop</div>
+      <div class="shop-balance-wrap"><span class="token-icon">◈</span> <span id="shop-balance">0</span></div>
+      <button id="close-shop">✕</button>
+    </div>
+    <div class="shop-subtitle">Buy gifts to put in your gift bag</div>
+    <div id="shop-gift-grid" class="gift-grid"></div>
   </div>
 
   <!-- Toast -->
@@ -123,7 +134,7 @@
         <div class="intro-step"><span>⌨</span> Arrow keys or D-pad to move</div>
         <div class="intro-step"><span>🏠</span> Walk near a house to meet a Sim</div>
         <div class="intro-step"><span>🚶</span> Walk together to earn SimTokens</div>
-        <div class="intro-step"><span>🎁</span> Spend tokens on gifts for your Sims</div>
+        <div class="intro-step"><span>🏪</span> Visit real shops to buy gifts for Sims</div>
       </div>
       <button id="intro-start">Start Walking</button>
     </div>

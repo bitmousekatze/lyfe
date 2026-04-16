@@ -37,7 +37,9 @@ const SIM_DATA = [
       "I try to walk every single day. It just... clears the head, you know?",
       "Ooh wait — did you see that? A little fox den over there!",
     ],
-    offsetLat: 0.0005, offsetLng: 0.0003,
+    homeOffsetLat:  0.0045, homeOffsetLng:  0.0038,
+    destOffsetLat:  0.0018, destOffsetLng:  0.0015,
+    schedule: { outStart: 12, outEnd: 18 },
   },
   {
     id: 2, name: "Nadia", emoji: "👩‍🦱", trait: "The Dreamer",
@@ -71,7 +73,9 @@ const SIM_DATA = [
       "I saw a cloud this morning shaped exactly like a question mark. Sign? Maybe.",
       "My theory is that the best ideas only come when you're moving. Literally.",
     ],
-    offsetLat: -0.0004, offsetLng: 0.0007,
+    homeOffsetLat: -0.0032, homeOffsetLng:  0.0065,
+    destOffsetLat: -0.0010, destOffsetLng:  0.0028,
+    schedule: { outStart: 10, outEnd: 12 },
   },
   {
     id: 3, name: "Theo", emoji: "👨‍🦳", trait: "The Caretaker",
@@ -105,7 +109,9 @@ const SIM_DATA = [
       "You know, just having company on a walk makes all the difference.",
       "Tell me about yourself. We've talked so much — I want to know more.",
     ],
-    offsetLat: 0.0002, offsetLng: -0.0006,
+    homeOffsetLat:  0.0038, homeOffsetLng: -0.0055,
+    destOffsetLat:  0.0015, destOffsetLng: -0.0020,
+    schedule: { outStart: 9, outEnd: 13 },
   },
   {
     id: 4, name: "Zara", emoji: "👩‍🦰", trait: "The Social Butterfly",
@@ -139,7 +145,9 @@ const SIM_DATA = [
       "You know what? I'm going to plan a whole neighborhood walk event.",
       "Walking is basically just networking but better. And with fresh air.",
     ],
-    offsetLat: 0.0008, offsetLng: 0.0002,
+    homeOffsetLat:  0.0070, homeOffsetLng:  0.0020,
+    destOffsetLat:  0.0032, destOffsetLng:  0.0050,
+    schedule: { outStart: 16, outEnd: 22 },
   },
   {
     id: 5, name: "Emil", emoji: "🧑‍🎨", trait: "The Cynic",
@@ -173,7 +181,9 @@ const SIM_DATA = [
       "Don't expect me to name every bird. I know three. That's it.",
       "If you tell anyone I enjoyed this walk, I'll deny everything.",
     ],
-    offsetLat: -0.0007, offsetLng: -0.0003,
+    homeOffsetLat: -0.0058, homeOffsetLng: -0.0040,
+    destOffsetLat: -0.0020, destOffsetLng: -0.0012,
+    schedule: { outStart: 14, outEnd: 17 },
   },
 ];
 
@@ -213,11 +223,80 @@ const state = {
   simMarkers: {},
   simGiftMemory: {}, // simId -> [{gift, timestamp}]
   chatHistory: {}, // simId -> [{role, content}] rolling window of last 10
+  giftInventory: [], // gifts bought at shops, ready to give
+  nearbyShop: null,
+  shops: [],
+  shopMarkers: {},
 };
 
 const WALK_GOAL = 300;
 const RANGE_METERS = 40;
 const MOVE_STEP = 0.00003;
+
+// ── Shop → Gift mapping (indices into GIFTS array) ──
+const SHOP_GIFT_MAP = {
+  cafe:        [1, 4],  // Coffee, Cake
+  restaurant:  [4],
+  bakery:      [4],
+  books:       [2],
+  music:       [5],
+  florist:     [3],
+  art:         [8],
+  gift:        [0, 6],
+  convenience: [1, 6],
+  supermarket: [1, 4],
+  clothes:     [7],
+};
+const SHOP_EMOJI_MAP = {
+  cafe: '☕', restaurant: '🍽️', bakery: '🥐', books: '📚', music: '🎵',
+  florist: '🌸', art: '🎨', gift: '🎁', clothes: '👗', supermarket: '🛒',
+  convenience: '🛒',
+};
+
+// ── Sim Route Helpers ──
+function lerpPos(lat1, lng1, lat2, lng2, t) {
+  const s = Math.max(0, Math.min(1, t));
+  return { lat: lat1 + (lat2 - lat1) * s, lng: lng1 + (lng2 - lng1) * s };
+}
+
+function getSimPhase(sim) {
+  const h = new Date().getHours() + new Date().getMinutes() / 60;
+  const { outStart, outEnd } = sim.schedule;
+  const w = 0.75; // 45-min walk window
+  if (h >= outStart - w && h < outStart) return 'walking_out';
+  if (h >= outStart && h < outEnd)       return 'dest';
+  if (h >= outEnd   && h < outEnd + w)   return 'walking_home';
+  return 'home';
+}
+
+function calcSimPos(sim) {
+  const h = new Date().getHours() + new Date().getMinutes() / 60;
+  const { outStart, outEnd } = sim.schedule;
+  const w = 0.75;
+  if (h >= outStart - w && h < outStart)
+    return lerpPos(sim.homeLat, sim.homeLng, sim.destLat, sim.destLng, (h - (outStart - w)) / w);
+  if (h >= outStart && h < outEnd)
+    return { lat: sim.destLat, lng: sim.destLng };
+  if (h >= outEnd && h < outEnd + w)
+    return lerpPos(sim.destLat, sim.destLng, sim.homeLat, sim.homeLng, (h - outEnd) / w);
+  return { lat: sim.homeLat, lng: sim.homeLng };
+}
+
+function tickSimRoutes() {
+  SIM_DATA.forEach(sim => {
+    if (!sim.homeLat) return;
+    const pos = calcSimPos(sim);
+    sim.lat = pos.lat;
+    sim.lng = pos.lng;
+    if (state.simMarkers[sim.id]) state.simMarkers[sim.id].setLatLng([pos.lat, pos.lng]);
+    const phase = getSimPhase(sim);
+    const el = document.getElementById(`sim-icon-${sim.id}`);
+    if (el) {
+      el.classList.toggle('sim-walking', phase === 'walking_out' || phase === 'walking_home');
+      el.classList.toggle('sim-at-dest', phase === 'dest');
+    }
+  });
+}
 
 // ── Map Setup ──
 let map, playerMarker, rangeCircle;
@@ -256,14 +335,26 @@ function initMap(lat, lng) {
 
   // Spawn Sims near player
   spawnSims(lat, lng);
+  tickSimRoutes();
+  setInterval(tickSimRoutes, 30000);
+
+  // Load real nearby shops from OSM
+  fetchNearbyShops(lat, lng).then(shops => {
+    state.shops = shops;
+    spawnShopMarkers(shops);
+    if (shops.length > 0) showToast(`Found ${shops.length} shops nearby!`);
+  });
 }
 
 function spawnSims(lat, lng) {
   SIM_DATA.forEach(sim => {
-    const simLat = lat + sim.offsetLat;
-    const simLng = lng + sim.offsetLng;
-    sim.lat = simLat;
-    sim.lng = simLng;
+    sim.homeLat = lat + sim.homeOffsetLat;
+    sim.homeLng = lng + sim.homeOffsetLng;
+    sim.destLat  = lat + sim.destOffsetLat;
+    sim.destLng  = lng + sim.destOffsetLng;
+    const pos = calcSimPos(sim);
+    sim.lat = pos.lat;
+    sim.lng = pos.lng;
     if (!state.relationships[sim.id]) state.relationships[sim.id] = 0;
 
     const icon = L.divIcon({
@@ -276,7 +367,7 @@ function spawnSims(lat, lng) {
       iconAnchor: [22, 22],
     });
 
-    const marker = L.marker([simLat, simLng], { icon }).addTo(map);
+    const marker = L.marker([sim.lat, sim.lng], { icon }).addTo(map);
     marker.on('click', () => tryInteract(sim));
     state.simMarkers[sim.id] = marker;
   });
@@ -302,6 +393,7 @@ function movePlayer(dLat, dLng) {
   map.panTo([state.playerPos.lat, state.playerPos.lng], { animate: true, duration: 0.1 });
 
   checkSimProximity();
+  checkShopProximity();
 
   // Walk mode distance tracking
   if (state.walkMode && state.walkLastPos) {
@@ -347,10 +439,119 @@ function checkSimProximity() {
 function tryInteract(sim) {
   const dist = haversine(state.playerPos.lat, state.playerPos.lng, sim.lat, sim.lng);
   if (dist > RANGE_METERS * 2.5) {
-    showToast(`Walk closer to ${sim.name}'s place first.`);
+    const phase = getSimPhase(sim);
+    const hint = phase === 'dest' ? `${sim.name} is out right now — find them!`
+                : phase.startsWith('walking') ? `${sim.name} is on the move — intercept them!`
+                : `Walk closer to ${sim.name}.`;
+    showToast(hint);
     return;
   }
   openInteractionPanel(sim);
+}
+
+// ── Shops (OSM) ──
+function getShopType(shop) {
+  return shop.tags?.shop || shop.tags?.amenity || 'default';
+}
+function getShopEmoji(shop) {
+  return SHOP_EMOJI_MAP[getShopType(shop)] || '🏪';
+}
+function getShopGifts(shop) {
+  const indices = SHOP_GIFT_MAP[getShopType(shop)] || [0, 1, 2];
+  return indices.map(i => GIFTS[i]);
+}
+
+async function fetchNearbyShops(lat, lng) {
+  const r = 450;
+  const q = `[out:json][timeout:12];(node["shop"~"gift|books|music|florist|art|bakery|supermarket|convenience|clothes"](around:${r},${lat},${lng});node["amenity"~"cafe|restaurant"](around:${r},${lat},${lng}););out 10;`;
+  try {
+    const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    return data.elements.slice(0, 8);
+  } catch (e) {
+    console.warn('Overpass shop fetch failed:', e);
+    return [];
+  }
+}
+
+function spawnShopMarkers(shops) {
+  shops.forEach(shop => {
+    const emoji = getShopEmoji(shop);
+    const name = shop.tags?.name || getShopType(shop);
+    const icon = L.divIcon({
+      className: 'shop-map-marker',
+      html: `<div class="shop-icon-wrap" id="shop-icon-${shop.id}">
+               <span class="shop-icon-emoji">${emoji}</span>
+               <div class="shop-icon-name">${name}</div>
+             </div>`,
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
+    });
+    const marker = L.marker([shop.lat, shop.lon], { icon }).addTo(map);
+    marker.on('click', () => {
+      const dist = haversine(state.playerPos.lat, state.playerPos.lng, shop.lat, shop.lon);
+      if (dist > RANGE_METERS * 3) {
+        showToast(`Walk closer to ${shop.tags?.name || 'the shop'}.`);
+        return;
+      }
+      openShopAtLocation(shop);
+    });
+    state.shopMarkers[shop.id] = marker;
+  });
+}
+
+function checkShopProximity() {
+  let nearest = null, nearestDist = Infinity;
+  state.shops.forEach(shop => {
+    const d = haversine(state.playerPos.lat, state.playerPos.lng, shop.lat, shop.lon);
+    const el = document.getElementById(`shop-icon-${shop.id}`);
+    if (el) el.classList.toggle('in-range', d < RANGE_METERS * 2);
+    if (d < RANGE_METERS * 2 && d < nearestDist) { nearest = shop; nearestDist = d; }
+  });
+  if (nearest && nearest !== state.nearbyShop) {
+    showToast(`${getShopEmoji(nearest)} ${nearest.tags?.name || 'Shop'} is nearby — tap to browse!`);
+  }
+  state.nearbyShop = nearest;
+}
+
+function openShopAtLocation(shop) {
+  const name = shop.tags?.name || (getShopType(shop).charAt(0).toUpperCase() + getShopType(shop).slice(1));
+  document.getElementById('shop-name').textContent = `${getShopEmoji(shop)} ${name}`;
+  document.getElementById('shop-balance').textContent = state.tokens;
+
+  const grid = document.getElementById('shop-gift-grid');
+  grid.innerHTML = '';
+  getShopGifts(shop).forEach(gift => {
+    const el = document.createElement('div');
+    el.className = 'gift-item';
+    el.innerHTML = `
+      <span class="gift-emoji">${gift.emoji}</span>
+      <div class="gift-name">${gift.name}</div>
+      <div class="gift-cost"><span class="token-icon">◈</span> ${gift.cost}</div>
+    `;
+    el.addEventListener('click', () => buyGiftAtShop(gift));
+    grid.appendChild(el);
+  });
+  showPanel('shop-panel');
+}
+
+function buyGiftAtShop(gift) {
+  if (state.tokens < gift.cost) {
+    showToast(`Need ${gift.cost - state.tokens} more SimTokens!`);
+    return;
+  }
+  state.tokens -= gift.cost;
+  document.getElementById('token-count').textContent = state.tokens;
+  document.getElementById('shop-balance').textContent = state.tokens;
+  state.giftInventory.push({ ...gift });
+  updateGiftBagBtn();
+  showToast(`${gift.emoji} ${gift.name} added to your gift bag!`);
+}
+
+function updateGiftBagBtn() {
+  const count = state.giftInventory.length;
+  document.getElementById('btn-gift').textContent =
+    count > 0 ? `🎁 Gift Bag (${count})` : `🎁 Gift Bag`;
 }
 
 // ── Interaction Panel ──
@@ -648,58 +849,55 @@ function awardTokens(amount, message) {
   }, 2700);
 }
 
-// ── Gift Shop ──
+// ── Gift Bag (give from inventory) ──
 function openGiftShop() {
+  document.getElementById('gift-title').textContent = '🎁 Gift Bag';
   document.getElementById('gift-token-count').textContent = state.tokens;
   const grid = document.getElementById('gift-grid');
   grid.innerHTML = '';
-  GIFTS.forEach((gift, i) => {
-    const el = document.createElement('div');
-    el.className = 'gift-item';
-    el.innerHTML = `
-      <span class="gift-emoji">${gift.emoji}</span>
-      <div class="gift-name">${gift.name}</div>
-      <div class="gift-cost"><span class="token-icon">◈</span> ${gift.cost}</div>
-    `;
-    el.addEventListener('click', () => purchaseGift(gift));
-    grid.appendChild(el);
-  });
+
+  if (state.giftInventory.length === 0) {
+    grid.innerHTML = `<div class="gift-empty-msg">Your gift bag is empty.<br>Walk to a shop on the map to buy gifts!</div>`;
+  } else {
+    state.giftInventory.forEach((gift, index) => {
+      const el = document.createElement('div');
+      el.className = 'gift-item';
+      el.innerHTML = `
+        <span class="gift-emoji">${gift.emoji}</span>
+        <div class="gift-name">${gift.name}</div>
+        <div class="gift-cost gift-give-label">Tap to give</div>
+      `;
+      el.addEventListener('click', () => giveGiftFromInventory(index));
+      grid.appendChild(el);
+    });
+  }
   hidePanel('interaction-panel');
   showPanel('gift-panel');
 }
 
-function purchaseGift(gift) {
-  if (state.tokens < gift.cost) {
-    showToast(`Not enough SimTokens! Need ${gift.cost - state.tokens} more.`);
-    return;
-  }
-  state.tokens -= gift.cost;
-  document.getElementById('token-count').textContent = state.tokens;
-  document.getElementById('gift-token-count').textContent = state.tokens;
+function giveGiftFromInventory(index) {
+  const gift = state.giftInventory[index];
+  if (!gift || !state.activeSim) return;
+  state.giftInventory.splice(index, 1);
 
   const sim = state.activeSim;
-  if (sim) {
-    const effectMatch = gift.effect.match(/\+(\d+)/);
-    if (effectMatch) {
-      const bonus = parseInt(effectMatch[1]);
-      state.relationships[sim.id] = Math.min(100, (state.relationships[sim.id] || 0) + bonus);
-    }
-    if (!state.simGiftMemory[sim.id]) state.simGiftMemory[sim.id] = [];
-    state.simGiftMemory[sim.id].push({ gift: gift.name, time: Date.now() });
-    showToast(`${sim.name} loved the ${gift.name}! ${gift.effect}`);
+  const effectMatch = gift.effect.match(/\+(\d+)/);
+  if (effectMatch) {
+    state.relationships[sim.id] = Math.min(100, (state.relationships[sim.id] || 0) + parseInt(effectMatch[1]));
   }
+  if (!state.simGiftMemory[sim.id]) state.simGiftMemory[sim.id] = [];
+  state.simGiftMemory[sim.id].push({ gift: gift.name, time: Date.now() });
 
+  updateGiftBagBtn();
   hidePanel('gift-panel');
-  if (state.activeSim) {
+  setTimeout(() => {
+    openInteractionPanel(sim);
+    addSystemMsg(`You gave ${sim.name} a ${gift.emoji} ${gift.name}.`);
     setTimeout(() => {
-      openInteractionPanel(state.activeSim);
-      addSystemMsg(`You gave ${state.activeSim.name} a ${gift.emoji} ${gift.name}.`);
-      setTimeout(() => {
-        addSimMsg(getGiftReaction(state.activeSim, gift));
-        updateRelBar(state.relationships[state.activeSim.id]);
-      }, 600);
-    }, 300);
-  }
+      addSimMsg(getGiftReaction(sim, gift));
+      updateRelBar(state.relationships[sim.id]);
+    }, 600);
+  }, 300);
 }
 
 function getGiftReaction(sim, gift) {
@@ -804,6 +1002,7 @@ document.getElementById('close-gift').addEventListener('click', () => {
   hidePanel('gift-panel');
   if (state.activeSim) openInteractionPanel(state.activeSim);
 });
+document.getElementById('close-shop').addEventListener('click', () => hidePanel('shop-panel'));
 
 document.getElementById('chat-send').addEventListener('click', sendChat);
 document.getElementById('chat-input').addEventListener('keydown', e => {
