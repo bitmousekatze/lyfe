@@ -1,146 +1,420 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Lyfe</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LYFE — Game Design Document</title>
+<style>
+:root{
+  --bg:#0f0e13;
+  --bg-2:#16151c;
+  --panel:#1c1b24;
+  --border:#2a2935;
+  --text:#e6e4ee;
+  --muted:#9d9aae;
+  --accent:#b8a4ff;
+  --accent-2:#7dd3c0;
+  --gold:#e9c46a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif;line-height:1.65;font-size:16px}
+body{
+  background:
+    radial-gradient(ellipse 1200px 600px at 50% -200px, rgba(184,164,255,0.18), transparent 60%),
+    radial-gradient(ellipse 800px 400px at 90% 30%, rgba(125,211,192,0.08), transparent 60%),
+    var(--bg);
+  background-attachment:fixed;
+  min-height:100vh;
+}
+.wrap{max-width:820px;margin:0 auto;padding:80px 32px 120px}
+.hero{
+  text-align:center;
+  padding:64px 24px 48px;
+  border-bottom:1px solid var(--border);
+  margin-bottom:64px;
+}
+.hero .eyebrow{
+  display:inline-block;
+  font-size:11px;
+  letter-spacing:0.3em;
+  text-transform:uppercase;
+  color:var(--accent);
+  font-weight:600;
+  margin-bottom:24px;
+  padding:6px 14px;
+  border:1px solid var(--accent);
+  border-radius:999px;
+  opacity:0.9;
+}
+.hero h1{
+  font-size:clamp(56px,10vw,108px);
+  margin:0;
+  font-weight:800;
+  letter-spacing:-0.04em;
+  background:linear-gradient(135deg,#fff 0%,#b8a4ff 50%,#7dd3c0 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  line-height:1;
+}
+.hero .subtitle{font-size:20px;color:var(--text);margin-top:24px;font-weight:300}
+.hero .version{color:var(--muted);font-size:13px;margin-top:12px;font-style:italic}
+.hero .tagline{
+  margin-top:48px;
+  font-style:italic;
+  font-size:22px;
+  color:var(--accent-2);
+  font-weight:300;
+}
+.play-cta{
+  display:inline-block;
+  margin-top:40px;
+  padding:16px 36px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  color:#0f0e13;
+  font-weight:700;
+  font-size:16px;
+  letter-spacing:0.05em;
+  border-radius:999px;
+  text-decoration:none;
+  box-shadow:0 8px 32px rgba(184,164,255,0.35);
+  transition:transform 0.15s ease, box-shadow 0.15s ease;
+}
+.play-cta:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 40px rgba(184,164,255,0.5);
+  text-decoration:none;
+}
+.topnav{
+  position:fixed;
+  top:16px; right:16px;
+  z-index:50;
+}
+.topnav a{
+  display:inline-block;
+  padding:10px 18px;
+  background:rgba(28,27,36,0.85);
+  border:1px solid var(--border);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  color:var(--accent);
+  border-radius:999px;
+  font-size:13px;
+  font-weight:600;
+  letter-spacing:0.05em;
+  text-decoration:none;
+  transition:border-color 0.15s ease;
+}
+.topnav a:hover{
+  border-color:var(--accent);
+  text-decoration:none;
+}
+h1,h2,h3,h4{font-weight:700;letter-spacing:-0.02em;color:#fff}
+h2{
+  font-size:32px;
+  margin:72px 0 24px;
+  padding-bottom:12px;
+  border-bottom:1px solid var(--border);
+  position:relative;
+}
+h2::before{
+  content:"";
+  position:absolute;
+  left:0;bottom:-1px;
+  width:64px;height:2px;
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));
+}
+h3{
+  font-size:22px;
+  margin:48px 0 16px;
+  color:var(--accent);
+}
+p{margin:0 0 18px;color:var(--text)}
+strong{color:#fff;font-weight:600}
+em{color:var(--accent-2);font-style:italic}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+ul{
+  margin:8px 0 24px;
+  padding-left:0;
+  list-style:none;
+}
+ul li{
+  position:relative;
+  padding:8px 0 8px 28px;
+  border-bottom:1px dashed rgba(255,255,255,0.05);
+}
+ul li:last-child{border-bottom:none}
+ul li::before{
+  content:"";
+  position:absolute;
+  left:6px; top:18px;
+  width:6px;height:6px;
+  background:var(--accent);
+  border-radius:50%;
+  box-shadow:0 0 12px var(--accent);
+}
+
+table.grid{
+  width:100%;
+  border-collapse:collapse;
+  margin:24px 0 32px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:12px;
+  overflow:hidden;
+}
+table.grid th{
+  text-align:left;
+  padding:14px 18px;
+  font-size:11px;
+  letter-spacing:0.2em;
+  text-transform:uppercase;
+  color:var(--accent);
+  background:rgba(184,164,255,0.06);
+  border-bottom:1px solid var(--border);
+  font-weight:600;
+}
+table.grid td{
+  padding:16px 18px;
+  vertical-align:top;
+  border-bottom:1px solid var(--border);
+  font-size:15px;
+}
+table.grid tbody tr:last-child td{border-bottom:none}
+table.grid tbody tr:hover{background:rgba(255,255,255,0.02)}
+table.grid td:first-child{
+  width:32%;
+  white-space:normal;
+  border-right:1px solid var(--border);
+}
+table.grid td:first-child strong{color:var(--accent-2)}
+
+aside.callout{
+  margin:32px 0;
+  padding:24px 28px;
+  background:linear-gradient(135deg,rgba(184,164,255,0.08),rgba(125,211,192,0.04));
+  border:1px solid var(--border);
+  border-left:3px solid var(--accent);
+  border-radius:10px;
+}
+aside.callout .callout-label{
+  font-size:11px;
+  letter-spacing:0.3em;
+  text-transform:uppercase;
+  color:var(--accent);
+  font-weight:700;
+  margin-bottom:10px;
+}
+aside.callout .callout-body{
+  font-style:italic;
+  color:var(--text);
+  font-size:17px;
+  line-height:1.6;
+}
+
+.footer{
+  margin-top:96px;
+  padding-top:32px;
+  border-top:1px solid var(--border);
+  text-align:center;
+  color:var(--muted);
+  font-size:13px;
+}
+
+@media (max-width:640px){
+  .wrap{padding:32px 20px 80px}
+  .hero{padding:32px 8px 32px}
+  h2{font-size:26px}
+  table.grid td:first-child{width:38%}
+}
+</style>
 </head>
 <body>
+<nav class="topnav"><a href="game.html">Play →</a></nav>
+<div class="wrap">
+<header class="hero">
+  <div class="eyebrow">Game Design Document</div>
+  <h1>LYFE</h1>
+  <div class="subtitle">A shared, location-based life simulation layered over the real world.</div>
+  <div class="version">Version 0.1 &nbsp;•&nbsp; Concept Stage</div>
+  <div class="tagline">"It's just life."</div>
+  <a class="play-cta" href="game.html">▶ Play the Prototype</a>
+</header>
+<main>
+<h2><strong>1. Elevator Pitch</strong></h2>
+<p>Lyfe is a shared, location-based life simulation layered over the real world. Players walk through their actual neighborhoods to interact with AI-driven characters — called Sims — who live, age, work, fall in love, and raise families on a shared map. Unlike other AR games, the point isn't to catch something. The point is to go outside, show up, and build relationships over time.</p>
+<aside class="callout"><div class="callout-label">CORE LOOP</div><div class="callout-body"><em>Walk somewhere real → interact with a Sim → relationship evolves → the world remembers you were there.</em></div></aside>
+<p>Lyfe is designed for the generation that grew up going to friends' houses on foot — and stopped. It gamifies the act of showing up.</p>
+<h2><strong>2. The World</strong></h2>
+<h3><strong>2.1  The Map</strong></h3>
+<p>The game world is built on OpenStreetMap data — free, open-source, and detailed enough to show individual houses, sidewalks, parks, and businesses. A digital layer sits on top of this map, populated with Sim homes, schedules, locations, and activity markers.</p>
+<ul>
+  <li>No Google Maps API dependency — fully open source stack</li>
+  <li>Streets, sidewalks, buildings, and landmarks are all rendered and walkable</li>
+  <li>Players see their real neighborhood, with Sim data overlaid as a second layer</li>
+</ul>
+<h3><strong>2.2  World Generation (The Chunk System)</strong></h3>
+<p>The world only exists where players have explored. This solves the empty-world problem for new users and keeps server load manageable.</p>
+<ul>
+  <li>On first login, 20–50 Sims are seeded within walking distance of the player</li>
+  <li>As a player walks into unexplored areas, new Sims spawn (approx. 3 per chunk entered)</li>
+  <li>Sims repopulate the map organically through the generational system (see Section 4)</li>
+  <li>All players share the same world — Sims are not private to any one account</li>
+</ul>
+<aside class="callout"><div class="callout-label">DESIGN NOTE</div><div class="callout-body"><em>The shared world is what makes Lyfe social. Your friend can befriend the same Sim you know — and that Sim will remember both of you.</em></div></aside>
+<h2><strong>3. The Sims</strong></h2>
+<h3><strong>3.1  What Is a Sim?</strong></h3>
+<p>Each Sim is an AI character anchored to a real-world location. They have a home address on the map, a daily schedule, a personality trait, a career, and a social life. They exist whether or not any player is interacting with them.</p>
+<h3><strong>3.2  Personality Traits</strong></h3>
+<p>Every Sim is generated with one dominant personality trait that shapes how they speak, what activities they enjoy, and how relationships with them develop. Example traits:</p>
+<table class="grid">
+<thead><tr><th>Trait</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td><strong>The Optimist</strong></td><td>Finds the bright side of everything. Loves outdoor activities. Hard to upset.</td></tr>
+<tr><td><strong>The Cynic</strong></td><td>Dry humor, takes time to warm up. Deeply loyal once trust is built.</td></tr>
+<tr><td><strong>The Homebody</strong></td><td>Rarely strays far. Rich inner world. Best conversations happen at their place.</td></tr>
+<tr><td><strong>The Social Butterfly</strong></td><td>Knows everyone. Popular. High demand — you may have competition.</td></tr>
+<tr><td><strong>The Dreamer</strong></td><td>Always starting new projects. Loves talking about ideas. Slightly chaotic.</td></tr>
+<tr><td><strong>The Caretaker</strong></td><td>Nurturing, remembers details about you. Gets hurt if you disappear.</td></tr>
+</tbody></table>
+<h3><strong>3.3  Schedules</strong></h3>
+<p>Sims follow real daily schedules tied to in-game time. A Sim who works at the bakery is there mornings. A night-owl artist is home late. Players need to actually show up at the right time — just like real life.</p>
+<ul>
+  <li>Morning: Home or commuting to work</li>
+  <li>Afternoon: At their workplace, park, or running errands</li>
+  <li>Evening: Home, socializing, or at a local venue</li>
+  <li>Sims occasionally post "status updates" visible on the map, hinting at their location</li>
+</ul>
+<h2><strong>4. The Generational System</strong></h2>
+<p>This is Lyfe's most original mechanic. Sims are not static — they live full lives, and the world evolves as generations turn over.</p>
+<h3><strong>4.1  The Sim Lifecycle</strong></h3>
+<table class="grid">
+<thead><tr><th>Life Stage</th><th>Gameplay Behavior</th></tr></thead>
+<tbody>
+<tr><td><strong>Childhood (0–12)</strong></td><td>Exists in the world but not interactable. Visible at family dinners, parks.</td></tr>
+<tr><td><strong>Teen (13–17)</strong></td><td>Interactable. Can be introduced by parent Sims. Impressionable — players can influence their path.</td></tr>
+<tr><td><strong>Young Adult (18–25)</strong></td><td>Most active social period. Dating, career starting, moving out.</td></tr>
+<tr><td><strong>Adult (26–55)</strong></td><td>Established. Career in full swing. Family of their own. Busier schedule.</td></tr>
+<tr><td><strong>Elder (56–70)</strong></td><td>Slowing down. Deep memories. Rich conversations. Eventually passes on.</td></tr>
+<tr><td><strong>Death</strong></td><td>Sim leaves behind offspring who carry their name and share some traits.</td></tr>
+</tbody></table>
+<h3><strong>4.2  Offspring &amp; Repopulation</strong></h3>
+<p>When a Sim reaches adulthood, they may partner with another Sim and have children. These children grow up to become the next generation of interactable characters — keeping the world populated without developer intervention.</p>
+<ul>
+  <li>Children of Sims you knew will inherit partial memories of your relationship with their parent</li>
+  <li>Players can influence a teenage Sim's future (encourage college, a trade, travel)</li>
+  <li>Adult offspring may move to a new area of the map — expanding the world organically</li>
+  <li>A percentage stay near home; others relocate, seeding new neighborhoods</li>
+</ul>
+<aside class="callout"><div class="callout-label">EMOTIONAL HOOK</div><div class="callout-body"><em>You meet Marcus at 23. You watch him get married, have a daughter, grow old. His daughter Maya grows up knowing your name. That is a relationship no other game has.</em></div></aside>
+<h2><strong>5. Relationships &amp; Bonding</strong></h2>
+<h3><strong>5.1  The Relationship Meter</strong></h3>
+<p>Every Sim tracks a relationship score with every player. This score is built by showing up — not by tapping. Distance traveled to interact carries real weight.</p>
+<table class="grid">
+<thead><tr><th>Relationship Tier</th><th>What Changes</th></tr></thead>
+<tbody>
+<tr><td><strong>Stranger</strong></td><td>Just met. Basic conversation only.</td></tr>
+<tr><td><strong>Acquaintance</strong></td><td>A few visits. They remember your name. Light activities unlock.</td></tr>
+<tr><td><strong>Friend</strong></td><td>Regular contact. Deeper conversations. Invite to group activities.</td></tr>
+<tr><td><strong>Close Friend</strong></td><td>High trust. Vulnerable conversations. They'll introduce you to their network.</td></tr>
+<tr><td><strong>Best Friend / Partner</strong></td><td>Rare tier. Long history required. Unlocks the deepest story content.</td></tr>
+</tbody></table>
+<h3><strong>5.2  Relationship Decay</strong></h3>
+<p>Relationships are living things. Ghosting a Sim has consequences — modeled loosely on real life.</p>
+<ul>
+  <li>Short absence (1–2 weeks): Sim may mention they haven't seen you</li>
+  <li>Medium absence (1 month): Relationship score slowly dips</li>
+  <li>Long absence (2+ months): Sim moves on — new friends, new routines. Score resets partially.</li>
+  <li>Elder Sims are more forgiving of gaps. Teenage Sims feel it more.</li>
+</ul>
+<h3><strong>5.3  Romantic Relationships</strong></h3>
+<p>Romance is an optional layer — not a core objective. Players who want it can pursue it; players who don't will never be pushed toward it. Dating a Sim requires a close friendship first and evolves naturally through repeated visits and shared experiences.</p>
+<h2><strong>6. Activities &amp; Where You Go</strong></h2>
+<p>What you do with a Sim depends entirely on where you physically go. The real world is the game board.</p>
+<table class="grid">
+<thead><tr><th>Real Location</th><th>Activity in Lyfe</th></tr></thead>
+<tbody>
+<tr><td><strong>Park</strong></td><td>Chat, play phone mini-games (frisbee, picnic), walk together</td></tr>
+<tr><td><strong>Movie Theater</strong></td><td>Watch a film — Sim discusses the movie with you afterward using AI</td></tr>
+<tr><td><strong>Restaurant / Café</strong></td><td>Shared meal. Conversation-heavy. Relationship builds faster.</td></tr>
+<tr><td><strong>Bowling Alley</strong></td><td>Mini-game on phone + real bowling. Group activity — bring real friends too.</td></tr>
+<tr><td><strong>Sim's Home</strong></td><td>Deepest conversations happen here. Meet their family. See their world.</td></tr>
+<tr><td><strong>Your Home</strong></td><td>Invite Sims over. They remember details about your space.</td></tr>
+<tr><td><strong>Local Business</strong></td><td>Career-related activities. Helps unlock job opportunities for your player.</td></tr>
+</tbody></table>
+<aside class="callout"><div class="callout-label">KEY MECHANIC</div><div class="callout-body"><em>Bring your real friends AND your Sims to the same place. Organize your crew to invite 3 Sims to bowling — your friends play real bowling, your Sims play the mini-game. Both exist in the same moment.</em></div></aside>
+<h2><strong>7. The Player Character &amp; Career System</strong></h2>
+<h3><strong>7.1  You Live a Life Too</strong></h3>
+<p>Players are not observers — they have their own character who ages, makes career choices, and is shaped by their neighborhood. Inspired by BitLife, every few days the player receives life events and choices.</p>
+<ul>
+  <li>Career path is influenced by the Sims around you — a neighborhood full of lawyers nudges you toward law</li>
+  <li>You can choose to follow or resist those influences</li>
+  <li>Your career unlocks new types of Sims and activities</li>
+  <li>Player ages in sync with their Sims — you grow up together</li>
+</ul>
+<h3><strong>7.2  Career Paths (Examples)</strong></h3>
+<table class="grid">
+<thead><tr><th>Career</th><th>What It Does</th></tr></thead>
+<tbody>
+<tr><td><strong>Chef</strong></td><td>Unlocked by knowing Sims who cook. Open a restaurant location on the map.</td></tr>
+<tr><td><strong>Lawyer / Government</strong></td><td>Unlocked near legal/civic Sims. Influences local Sim laws and events.</td></tr>
+<tr><td><strong>Artist</strong></td><td>Unlocked near creative Sims. Leaves permanent art on the map.</td></tr>
+<tr><td><strong>Doctor</strong></td><td>Can heal Sims, extend elder Sims' lifespans slightly.</td></tr>
+<tr><td><strong>Teacher</strong></td><td>Influences teen Sims' development. Legacy mechanic.</td></tr>
+<tr><td><strong>Entrepreneur</strong></td><td>Build businesses on the map that other Sims (and players) can visit.</td></tr>
+</tbody></table>
+<h2><strong>8. Shared Memory &amp; The Social Layer</strong></h2>
+<p>Lyfe's AI remembers everything. This is what separates it from a single-player game.</p>
+<ul>
+  <li>A Sim who knows both you and your real-life friend will reference your friend in conversation</li>
+  <li>"Your friend Jamie came by last week — we talked about you actually."</li>
+  <li>Sims form opinions about players based on accumulated interactions</li>
+  <li>Popular Sims have high demand — multiple players may compete for their time</li>
+  <li>Sims gossip with other Sims, spreading your reputation through the world</li>
+</ul>
+<aside class="callout"><div class="callout-label">VISION</div><div class="callout-body"><em>Your real friends download Lyfe. You all know Marcus. Marcus becomes a shared character — a mutual friend who only exists because you both showed up. That's new.</em></div></aside>
+<h2><strong>9. Monetization</strong></h2>
+<p>Lyfe's monetization is designed to never gate relationships or core gameplay behind payment. The world and its people are free.</p>
+<table class="grid">
+<thead><tr><th>Revenue Stream</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td><strong>Cosmetics</strong></td><td>Outfits for your character, décor for your home, customization for Sim spaces you own.</td></tr>
+<tr><td><strong>Influence Radius Expansion</strong></td><td>Expand the area around you where Sims spawn and events occur.</td></tr>
+<tr><td><strong>Business Licenses</strong></td><td>Open a real-world-mapped business that Sims visit and generates passive social events.</td></tr>
+<tr><td><strong>Event Hosting</strong></td><td>Host special events at real locations — invite Sims and real friends.</td></tr>
+<tr><td><strong>Legacy Pass</strong></td><td>Optional subscription — deeper Sim memory, genealogy trees, archival of passed Sims.</td></tr>
+</tbody></table>
+<p>What Lyfe will never sell: relationship shortcuts, pay-to-win Sim affection, or access to core map exploration.</p>
+<h2><strong>10. Technical Overview</strong></h2>
+<table class="grid">
+<thead><tr><th>Component</th><th>Approach</th></tr></thead>
+<tbody>
+<tr><td><strong>Map Data</strong></td><td>OpenStreetMap (OSM) — open source, no API cost, street/building level detail</td></tr>
+<tr><td><strong>AI Backend</strong></td><td>Large language model per Sim with persistent memory store</td></tr>
+<tr><td><strong>Sim Memory</strong></td><td>Vector database storing each Sim's interaction history per player</td></tr>
+<tr><td><strong>World State</strong></td><td>Server-side simulation — Sims age and move whether players are online or not</td></tr>
+<tr><td><strong>Mobile</strong></td><td>iOS and Android (React Native or Flutter)</td></tr>
+<tr><td><strong>Location</strong></td><td>Device GPS + OSM tile matching for position on map</td></tr>
+</tbody></table>
+<h2><strong>11. Open Design Questions</strong></h2>
+<p>These are the unresolved questions to address in the next design iteration:</p>
+<ul>
+  <li>Moderation: How do we handle player behavior toward Sims that is abusive or manipulative?</li>
+  <li>Privacy: How do we handle real home addresses being used as Sim home locations?</li>
+  <li>Pacing: How fast do Sims age? What is one in-game year in real time?</li>
+  <li>Onboarding: What is the ideal first 10-minute experience for a solo new player?</li>
+  <li>Content: Who writes the initial Sim personalities and dialogue seeds?</li>
+  <li>Cross-platform memory: What happens when a Sim's memory store gets very large?</li>
+</ul>
+<h2><strong>12. Vision Statement</strong></h2>
+<p><em><strong>"Remember when you used to just walk to your friend's house?"</strong></em></p>
+<p>Lyfe is built for the 23-year-old who remembers being 16 and spending all day outside with friends — and wonders why that stopped. It doesn't replace real relationships. It creates a reason to go out and have them.</p>
+<p>The AI characters are the excuse. The real world is the game. The people you walk with are the point.</p>
 
-  <!-- HUD -->
-  <div id="hud">
-    <div id="hud-left">
-      <div id="token-display">
-        <span class="token-icon">◈</span>
-        <span id="token-count">0</span>
-        <span class="token-label">SimTokens</span>
-      </div>
-    </div>
-    <div id="hud-center">
-      <div id="game-title">LYFE</div>
-    </div>
-    <div id="hud-right">
-      <div id="status-display">
-        <span id="status-dot"></span>
-        <span id="status-text">Exploring</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Map -->
-  <div id="map"></div>
-
-  <!-- D-pad controls -->
-  <div id="dpad">
-    <button class="dpad-btn" id="btn-up">▲</button>
-    <div class="dpad-row">
-      <button class="dpad-btn" id="btn-left">◀</button>
-      <div class="dpad-center">+</div>
-      <button class="dpad-btn" id="btn-right">▶</button>
-    </div>
-    <button class="dpad-btn" id="btn-down">▼</button>
-  </div>
-
-  <!-- Interaction Panel -->
-  <div id="interaction-panel" class="panel hidden">
-    <div class="panel-header">
-      <div id="sim-avatar-wrap">
-        <div id="sim-avatar"></div>
-        <div id="sim-online-dot"></div>
-      </div>
-      <div id="sim-info">
-        <div id="sim-name">—</div>
-        <div id="sim-trait">—</div>
-      </div>
-      <button id="close-panel">✕</button>
-    </div>
-    <div id="sim-relationship-bar-wrap">
-      <div class="rel-label">Relationship</div>
-      <div id="sim-relationship-bar"><div id="sim-relationship-fill"></div></div>
-      <div id="rel-tier-label">Stranger</div>
-    </div>
-    <div id="chat-window"></div>
-    <div id="chat-input-wrap">
-      <input id="chat-input" type="text" placeholder="Say something…" autocomplete="off" />
-      <button id="chat-send">→</button>
-    </div>
-    <div id="panel-actions">
-      <button class="action-btn" id="btn-walk-together">🚶 Walk Together</button>
-      <button class="action-btn" id="btn-gift">🎁 Gift</button>
-    </div>
-  </div>
-
-  <!-- Walk Together Mode -->
-  <div id="walk-panel" class="panel hidden">
-    <div id="walk-header">Walking with <span id="walk-sim-name">—</span></div>
-    <div id="walk-distance-wrap">
-      <svg viewBox="0 0 120 120" id="walk-ring">
-        <circle cx="60" cy="60" r="52" fill="none" stroke="#1a1a2e" stroke-width="10"/>
-        <circle cx="60" cy="60" r="52" fill="none" stroke="#c8a97e" stroke-width="10"
-          stroke-dasharray="327" stroke-dashoffset="327"
-          id="walk-ring-fill" stroke-linecap="round"
-          transform="rotate(-90 60 60)"/>
-      </svg>
-      <div id="walk-distance-text">
-        <div id="walk-meters">0</div>
-        <div id="walk-meters-label">/ 300m</div>
-      </div>
-    </div>
-    <div id="walk-reward-hint">Keep walking to find SimTokens!</div>
-    <button id="btn-end-walk" class="action-btn">End Walk</button>
-  </div>
-
-  <!-- Token Reward Popup -->
-  <div id="token-popup" class="hidden">
-    <div class="token-popup-icon">◈</div>
-    <div class="token-popup-text"></div>
-  </div>
-
-  <!-- Gift Bag (give to sim) -->
-  <div id="gift-panel" class="panel hidden">
-    <div class="panel-header">
-      <div id="gift-title">🎁 Gift Bag</div>
-      <div id="gift-balance"><span class="token-icon">◈</span> <span id="gift-token-count">0</span></div>
-      <button id="close-gift">✕</button>
-    </div>
-    <div id="gift-grid"></div>
-  </div>
-
-  <!-- Shop Panel (buy at real location) -->
-  <div id="shop-panel" class="panel hidden">
-    <div class="panel-header">
-      <div id="shop-name">Shop</div>
-      <div class="shop-balance-wrap"><span class="token-icon">◈</span> <span id="shop-balance">0</span></div>
-      <button id="close-shop">✕</button>
-    </div>
-    <div class="shop-subtitle">Buy gifts to put in your gift bag</div>
-    <div id="shop-gift-grid" class="gift-grid"></div>
-  </div>
-
-  <!-- Toast -->
-  <div id="toast" class="hidden"></div>
-
-  <!-- Intro -->
-  <div id="intro-overlay">
-    <div id="intro-box">
-      <div id="intro-logo">LYFE</div>
-      <div id="intro-tagline"><em>"It's just life."</em></div>
-      <p>Walk your real neighborhood. Meet your Sims. Build real relationships.</p>
-      <div id="intro-instructions">
-        <div class="intro-step"><span>⌨</span> Arrow keys or D-pad to move</div>
-        <div class="intro-step"><span>🏠</span> Walk near a house to meet a Sim</div>
-        <div class="intro-step"><span>🚶</span> Walk together to earn SimTokens</div>
-        <div class="intro-step"><span>🏪</span> Visit real shops to buy gifts for Sims</div>
-      </div>
-      <button id="intro-start">Start Walking</button>
-    </div>
-  </div>
-
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="game.js"></script>
+</main>
+<div class="footer">LYFE GDD &nbsp;·&nbsp; Concept Document</div>
+</div>
 </body>
 </html>

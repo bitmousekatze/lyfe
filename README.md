@@ -21,14 +21,15 @@ If GPS is unavailable, the game defaults to Cologne city center.
 ## 🚀 Deploy to GitHub Pages
 
 1. Create a new GitHub repo
-2. Push these three files: `index.html`, `style.css`, `game.js`
+2. Push these files: `index.html` (GDD landing page), `game.html`, `style.css`, `game.js`
 3. Go to **Settings → Pages → Source → Deploy from branch → main → / (root)**
 4. Your game will be live at `https://yourusername.github.io/your-repo-name`
 
 ## 📁 Files
 
 ```
-index.html   — Structure and panels
+index.html   — Game Design Document landing page (links to game)
+game.html    — Game structure and panels
 style.css    — Dark gold aesthetic
 game.js      — Game engine, Sims, movement, tokens, gifts
 ```

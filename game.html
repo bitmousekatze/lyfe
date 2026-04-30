@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Lyfe</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div id="hud-left">
+      <div id="token-display">
+        <span class="token-icon">◈</span>
+        <span id="token-count">0</span>
+        <span class="token-label">SimTokens</span>
+      </div>
+    </div>
+    <div id="hud-center">
+      <div id="game-title">LYFE</div>
+    </div>
+    <div id="hud-right">
+      <div id="status-display">
+        <span id="status-dot"></span>
+        <span id="status-text">Exploring</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Map -->
+  <div id="map"></div>
+
+  <!-- D-pad controls -->
+  <div id="dpad">
+    <button class="dpad-btn" id="btn-up">▲</button>
+    <div class="dpad-row">
+      <button class="dpad-btn" id="btn-left">◀</button>
+      <div class="dpad-center">+</div>
+      <button class="dpad-btn" id="btn-right">▶</button>
+    </div>
+    <button class="dpad-btn" id="btn-down">▼</button>
+  </div>
+
+  <!-- Interaction Panel -->
+  <div id="interaction-panel" class="panel hidden">
+    <div class="panel-header">
+      <div id="sim-avatar-wrap">
+        <div id="sim-avatar"></div>
+        <div id="sim-online-dot"></div>
+      </div>
+      <div id="sim-info">
+        <div id="sim-name">—</div>
+        <div id="sim-trait">—</div>
+      </div>
+      <button id="close-panel">✕</button>
+    </div>
+    <div id="sim-relationship-bar-wrap">
+      <div class="rel-label">Relationship</div>
+      <div id="sim-relationship-bar"><div id="sim-relationship-fill"></div></div>
+      <div id="rel-tier-label">Stranger</div>
+    </div>
+    <div id="chat-window"></div>
+    <div id="chat-input-wrap">
+      <input id="chat-input" type="text" placeholder="Say something…" autocomplete="off" />
+      <button id="chat-send">→</button>
+    </div>
+    <div id="panel-actions">
+      <button class="action-btn" id="btn-walk-together">🚶 Walk Together</button>
+      <button class="action-btn" id="btn-gift">🎁 Gift</button>
+    </div>
+  </div>
+
+  <!-- Walk Together Mode -->
+  <div id="walk-panel" class="panel hidden">
+    <div id="walk-header">Walking with <span id="walk-sim-name">—</span></div>
+    <div id="walk-distance-wrap">
+      <svg viewBox="0 0 120 120" id="walk-ring">
+        <circle cx="60" cy="60" r="52" fill="none" stroke="#1a1a2e" stroke-width="10"/>
+        <circle cx="60" cy="60" r="52" fill="none" stroke="#c8a97e" stroke-width="10"
+          stroke-dasharray="327" stroke-dashoffset="327"
+          id="walk-ring-fill" stroke-linecap="round"
+          transform="rotate(-90 60 60)"/>
+      </svg>
+      <div id="walk-distance-text">
+        <div id="walk-meters">0</div>
+        <div id="walk-meters-label">/ 300m</div>
+      </div>
+    </div>
+    <div id="walk-reward-hint">Keep walking to find SimTokens!</div>
+    <button id="btn-end-walk" class="action-btn">End Walk</button>
+  </div>
+
+  <!-- Token Reward Popup -->
+  <div id="token-popup" class="hidden">
+    <div class="token-popup-icon">◈</div>
+    <div class="token-popup-text"></div>
+  </div>
+
+  <!-- Gift Bag (give to sim) -->
+  <div id="gift-panel" class="panel hidden">
+    <div class="panel-header">
+      <div id="gift-title">🎁 Gift Bag</div>
+      <div id="gift-balance"><span class="token-icon">◈</span> <span id="gift-token-count">0</span></div>
+      <button id="close-gift">✕</button>
+    </div>
+    <div id="gift-grid"></div>
+  </div>
+
+  <!-- Shop Panel (buy at real location) -->
+  <div id="shop-panel" class="panel hidden">
+    <div class="panel-header">
+      <div id="shop-name">Shop</div>
+      <div class="shop-balance-wrap"><span class="token-icon">◈</span> <span id="shop-balance">0</span></div>
+      <button id="close-shop">✕</button>
+    </div>
+    <div class="shop-subtitle">Buy gifts to put in your gift bag</div>
+    <div id="shop-gift-grid" class="gift-grid"></div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="hidden"></div>
+
+  <!-- Intro -->
+  <div id="intro-overlay">
+    <div id="intro-box">
+      <div id="intro-logo">LYFE</div>
+      <div id="intro-tagline"><em>"It's just life."</em></div>
+      <p>Walk your real neighborhood. Meet your Sims. Build real relationships.</p>
+      <div id="intro-instructions">
+        <div class="intro-step"><span>⌨</span> Arrow keys or D-pad to move</div>
+        <div class="intro-step"><span>🏠</span> Walk near a house to meet a Sim</div>
+        <div class="intro-step"><span>🚶</span> Walk together to earn SimTokens</div>
+        <div class="intro-step"><span>🏪</span> Visit real shops to buy gifts for Sims</div>
+      </div>
+      <button id="intro-start">Start Walking</button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
